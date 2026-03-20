@@ -9,7 +9,7 @@ Handles tax compliance (80+ countries), fraud prevention, and dispute management
 Add to your `mix.exs`:
 
 ```elixir
-{:stripe_managed, github: "alexanderp/stripe_managed"}
+{:stripe_managed, "~> 0.1"}
 ```
 
 ## Configuration
