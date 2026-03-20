@@ -2,7 +2,7 @@ defmodule StripeManaged.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/alexanderp/stripe_managed"
+  @source_url "https://github.com/safemyprivacy0-bit/stripe_managed"
 
   def project do
     [
@@ -42,7 +42,8 @@ defmodule StripeManaged.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url}
+      links: %{"GitHub" => @source_url},
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
     ]
   end
 
