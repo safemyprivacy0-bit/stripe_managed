@@ -1,5 +1,8 @@
 # StripeManaged
 
+[![CI](https://github.com/safemyprivacy0-bit/stripe_managed/actions/workflows/ci.yml/badge.svg)](https://github.com/safemyprivacy0-bit/stripe_managed/actions/workflows/ci.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/stripe_managed.svg)](https://hex.pm/packages/stripe_managed)
+
 Elixir client for [Stripe Managed Payments](https://docs.stripe.com/payments/managed-payments) - sell digital products with Stripe as your merchant of record.
 
 Handles tax compliance (80+ countries), fraud prevention, and dispute management out of the box.
