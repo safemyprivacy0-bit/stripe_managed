@@ -22,3 +22,7 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 stripe_managed-*.tar
 
+# Environment variables / secrets
+.env
+.env.*
+
