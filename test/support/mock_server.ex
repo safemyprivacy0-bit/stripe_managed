@@ -14,6 +14,16 @@ defmodule StripeManaged.MockServer do
 
   # -- Products --
 
+  post "/v1/products/:id" do
+    json(conn, 200, %{
+      "id" => id,
+      "object" => "product",
+      "name" => conn.body_params["name"] || "Test Product",
+      "active" => true,
+      "created" => 1_700_000_000
+    })
+  end
+
   post "/v1/products" do
     json(conn, 200, %{
       "id" => "prod_test123",
@@ -53,6 +63,16 @@ defmodule StripeManaged.MockServer do
   end
 
   # -- Prices --
+
+  post "/v1/prices/:id" do
+    json(conn, 200, %{
+      "id" => id,
+      "object" => "price",
+      "unit_amount" => 2900,
+      "currency" => "usd",
+      "active" => conn.body_params["active"] != "false"
+    })
+  end
 
   post "/v1/prices" do
     json(conn, 200, %{
@@ -101,6 +121,14 @@ defmodule StripeManaged.MockServer do
       "object" => "checkout.session",
       "status" => "complete",
       "payment_status" => "paid"
+    })
+  end
+
+  get "/v1/checkout/sessions" do
+    json(conn, 200, %{
+      "object" => "list",
+      "data" => [%{"id" => "cs_1", "object" => "checkout.session", "status" => "complete"}],
+      "has_more" => false
     })
   end
 
@@ -193,6 +221,15 @@ defmodule StripeManaged.MockServer do
 
   # -- Refunds --
 
+  post "/v1/refunds/:id" do
+    json(conn, 200, %{
+      "id" => id,
+      "object" => "refund",
+      "amount" => 2900,
+      "status" => "succeeded"
+    })
+  end
+
   post "/v1/refunds" do
     json(conn, 200, %{
       "id" => "re_test123",
@@ -236,6 +273,26 @@ defmodule StripeManaged.MockServer do
       "data" => [%{"id" => "cus_1", "object" => "customer", "email" => "test@example.com"}],
       "has_more" => false
     })
+  end
+
+  # -- Pagination test --
+
+  get "/v1/paginated" do
+    starting_after = conn.query_params["starting_after"]
+
+    if starting_after == "item_2" do
+      json(conn, 200, %{
+        "object" => "list",
+        "data" => [%{"id" => "item_3"}, %{"id" => "item_4"}],
+        "has_more" => false
+      })
+    else
+      json(conn, 200, %{
+        "object" => "list",
+        "data" => [%{"id" => "item_1"}, %{"id" => "item_2"}],
+        "has_more" => true
+      })
+    end
   end
 
   # -- Error routes --

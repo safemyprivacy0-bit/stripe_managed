@@ -54,4 +54,50 @@ defmodule StripeManaged.WebhookTest do
 
     assert :ok = Webhook.verify(payload, signature, webhook_secret: @secret)
   end
+
+  test "verify/3 rejects invalid signature" do
+    payload = Jason.encode!(%{"type" => "test"})
+    signature = TestHelpers.sign_payload(payload, "wrong_secret")
+
+    assert {:error, "signature verification failed"} =
+             Webhook.verify(payload, signature, webhook_secret: @secret)
+  end
+
+  test "construct_event/3 rejects malformed signature header" do
+    payload = Jason.encode!(%{"type" => "test"})
+
+    assert {:error, "missing timestamp in signature"} =
+             Webhook.construct_event(payload, "v1=abc123", webhook_secret: @secret)
+  end
+
+  test "construct_event/3 rejects signature without v1" do
+    payload = Jason.encode!(%{"type" => "test"})
+
+    assert {:error, "missing v1 signature"} =
+             Webhook.construct_event(payload, "t=12345", webhook_secret: @secret)
+  end
+
+  test "construct_event/3 rejects non-numeric timestamp" do
+    payload = Jason.encode!(%{"type" => "test"})
+
+    assert {:error, "invalid timestamp"} =
+             Webhook.construct_event(payload, "t=abc,v1=def", webhook_secret: @secret)
+  end
+
+  test "construct_event/3 rejects invalid JSON payload" do
+    payload = "not json"
+    signature = TestHelpers.sign_payload(payload, @secret)
+
+    assert {:error, "invalid JSON payload"} =
+             Webhook.construct_event(payload, signature, webhook_secret: @secret)
+  end
+
+  test "construct_event/3 with custom tolerance" do
+    payload = Jason.encode!(%{"type" => "test"})
+    old_timestamp = System.system_time(:second) - 10
+    signature = TestHelpers.sign_payload(payload, @secret, old_timestamp)
+
+    assert {:ok, _} =
+             Webhook.construct_event(payload, signature, webhook_secret: @secret, tolerance: 60)
+  end
 end

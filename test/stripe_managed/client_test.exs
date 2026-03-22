@@ -57,4 +57,26 @@ defmodule StripeManaged.ClientTest do
     assert {"name", "Test"} in flat
     assert {"amount", 2900} in flat
   end
+
+  test "flatten_params/1 handles atom values" do
+    params = %{status: :active}
+    flat = Client.flatten_params(params)
+    assert {"status", "active"} in flat
+  end
+
+  test "flatten_params/1 handles list input" do
+    input = [{"key", "value"}]
+    assert Client.flatten_params(input) == input
+  end
+
+  test "list_paginated/3 fetches multiple pages", %{opts: opts} do
+    items = Client.list_paginated("/v1/paginated", %{}, opts) |> Enum.to_list()
+    assert length(items) == 4
+    assert Enum.map(items, & &1["id"]) == ["item_1", "item_2", "item_3", "item_4"]
+  end
+
+  test "list_paginated/3 with default params", %{opts: opts} do
+    items = Client.list_paginated("/v1/products", %{}, opts) |> Enum.to_list()
+    assert length(items) == 2
+  end
 end

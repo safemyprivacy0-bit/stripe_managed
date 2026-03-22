@@ -31,7 +31,26 @@ defmodule StripeManaged.TaxCodeTest do
     assert TaxCode.saas_personal() == "txcd_10103001"
     assert TaxCode.saas_business() == "txcd_10103000"
     assert TaxCode.software_personal() == "txcd_10101001"
+    assert TaxCode.software_business() == "txcd_10101000"
     assert TaxCode.video_games_personal() == "txcd_10301001"
     assert TaxCode.ebooks_personal() == "txcd_10801001"
+    assert TaxCode.online_courses_personal() == "txcd_10501001"
+  end
+
+  test "all convenience codes are eligible" do
+    codes = [
+      TaxCode.saas_personal(),
+      TaxCode.saas_business(),
+      TaxCode.software_personal(),
+      TaxCode.software_business(),
+      TaxCode.video_games_personal(),
+      TaxCode.ebooks_personal(),
+      TaxCode.online_courses_personal()
+    ]
+
+    Enum.each(codes, fn code ->
+      assert TaxCode.eligible?(code), "Expected #{code} to be eligible"
+      assert is_binary(TaxCode.description(code)), "Expected description for #{code}"
+    end)
   end
 end
