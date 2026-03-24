@@ -15,7 +15,8 @@ defmodule StripeManaged.MixProject do
       description: "Elixir client for Stripe Managed Payments (merchant of record)",
       package: package(),
       docs: docs(),
-      elixirc_paths: elixirc_paths(Mix.env())
+      elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [threshold: 90]
     ]
   end
 
