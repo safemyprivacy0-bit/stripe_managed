@@ -4,6 +4,8 @@
 [![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](https://github.com/safemyprivacy0-bit/stripe_managed)
 [![Hex.pm](https://img.shields.io/hexpm/v/stripe_managed?color=purple)](https://hex.pm/packages/stripe_managed)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue)](https://hexdocs.pm/stripe_managed)
+[![Elixir](https://img.shields.io/badge/elixir-1.16%2B-blueviolet)](https://elixir-lang.org/)
+[![OTP](https://img.shields.io/badge/OTP-26%2B-blue)](https://www.erlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 Elixir client for [Stripe Managed Payments](https://docs.stripe.com/payments/managed-payments) - sell digital products with Stripe as your merchant of record.
