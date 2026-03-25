@@ -13,6 +13,8 @@ Elixir client for [Stripe Managed Payments](https://docs.stripe.com/payments/man
 
 Stripe handles tax compliance (80+ countries), fraud prevention, dispute management, and customer support. You handle products and checkout.
 
+> **New here?** See [examples/selling_saas.md](examples/selling_saas.md) for a complete Phoenix integration guide - from setup to checkout to webhook handling.
+
 ## What is Stripe Managed Payments?
 
 Stripe acts as the **merchant of record** for your digital product sales. This means:
