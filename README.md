@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/safemyprivacy0-bit/stripe_managed/actions/workflows/ci.yml/badge.svg)](https://github.com/safemyprivacy0-bit/stripe_managed/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](https://github.com/safemyprivacy0-bit/stripe_managed)
+[![GitHub Release](https://img.shields.io/github/v/release/safemyprivacy0-bit/stripe_managed)](https://github.com/safemyprivacy0-bit/stripe_managed/releases)
 [![Hex.pm](https://img.shields.io/hexpm/v/stripe_managed?color=purple)](https://hex.pm/packages/stripe_managed)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue)](https://hexdocs.pm/stripe_managed)
 [![Elixir](https://img.shields.io/badge/elixir-1.16%2B-blueviolet)](https://elixir-lang.org/)
@@ -306,29 +307,82 @@ customer["email"]  # => "user@example.com"
 
 ## Tax codes
 
-Only products with eligible tax codes can be sold through Managed Payments:
+Only products with eligible tax codes can be sold through Managed Payments. Each product you create must have a `tax_code` from this list.
 
 ```elixir
-# Helper functions for common categories
+# SaaS for individuals (Notion, Spotify, Netflix)
 StripeManaged.TaxCode.saas_personal()           # => "txcd_10103001"
+
+# SaaS for companies (Slack, Jira, HubSpot)
 StripeManaged.TaxCode.saas_business()           # => "txcd_10103000"
+
+# Downloadable software for individuals
 StripeManaged.TaxCode.software_personal()       # => "txcd_10101001"
+
+# Downloadable software for businesses (IDE, design tools)
 StripeManaged.TaxCode.software_business()       # => "txcd_10101000"
+
+# Video games (Steam-style digital distribution)
 StripeManaged.TaxCode.video_games_personal()    # => "txcd_10301001"
+
+# E-books, digital publications
 StripeManaged.TaxCode.ebooks_personal()         # => "txcd_10801001"
+
+# Online courses, tutorials (Udemy, Coursera style)
 StripeManaged.TaxCode.online_courses_personal() # => "txcd_10501001"
 
-# Check eligibility
+# Check if a code is eligible for Managed Payments
 StripeManaged.TaxCode.eligible?("txcd_10103001")  # => true
 StripeManaged.TaxCode.eligible?("txcd_99999999")  # => false
 
-# Get description
+# Get human-readable description
 StripeManaged.TaxCode.description("txcd_10103001")  # => "SaaS - personal use"
 
-# List all 30+ eligible codes
+# Get all 30 codes as a map
 StripeManaged.TaxCode.all()
-# => %{"txcd_10103001" => "SaaS - personal use", "txcd_10103000" => "SaaS - business use", ...}
+# => %{"txcd_10103001" => "SaaS - personal use", ...}
 ```
+
+> **Personal vs business?** Stripe uses `personal` (B2C) and `business` (B2B) variants.
+> Most SaaS/apps use `personal` unless you only sell to companies.
+
+<details>
+<summary>Full list of 30 eligible codes</summary>
+
+| Category | Code | Description |
+|----------|------|-------------|
+| **SaaS** | `txcd_10103001` | SaaS - personal use |
+| | `txcd_10103000` | SaaS - business use |
+| **Software** | `txcd_10101001` | Downloadable software - personal |
+| | `txcd_10101000` | Downloadable software - business |
+| | `txcd_10102001` | Custom software - personal |
+| | `txcd_10102000` | Custom software - business |
+| **Video games** | `txcd_10301001` | Video games - personal |
+| | `txcd_10301000` | Video games - business |
+| **Digital media** | `txcd_10201001` | Audio/visual works - personal |
+| | `txcd_10201000` | Audio/visual works - business |
+| | `txcd_10202001` | Audio works - personal |
+| | `txcd_10202000` | Audio works - business |
+| | `txcd_10203001` | Video works - personal |
+| | `txcd_10203000` | Video works - business |
+| **Digital artwork** | `txcd_10401001` | Digital artwork - personal |
+| | `txcd_10401000` | Digital artwork - business |
+| **E-books** | `txcd_10801001` | E-books - personal |
+| | `txcd_10801000` | E-books - business |
+| | `txcd_10802001` | Digital newspapers/magazines - personal |
+| | `txcd_10802000` | Digital newspapers/magazines - business |
+| **Online education** | `txcd_10501001` | Online courses - personal |
+| | `txcd_10501000` | Online courses - business |
+| | `txcd_10502001` | Training services - personal |
+| | `txcd_10502000` | Training services - business |
+| **Advertising** | `txcd_10601001` | Advertising services - personal |
+| | `txcd_10601000` | Advertising services - business |
+| **Information services** | `txcd_10701001` | Information services - personal |
+| | `txcd_10701000` | Information services - business |
+| | `txcd_10702001` | Website information services - personal |
+| | `txcd_10702000` | Website information services - business |
+
+</details>
 
 ## Auto-pagination
 
