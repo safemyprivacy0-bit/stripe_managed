@@ -40,7 +40,7 @@ config :stripe_managed,
 ## Quick start
 
 ```elixir
-# Create a product with a monthly price
+# Create a product with a recurring price
 {:ok, product} = StripeManaged.Product.create(%{
   name: "Pro Plan",
   tax_code: "txcd_10103001",
@@ -51,15 +51,15 @@ config :stripe_managed,
   }
 })
 
-# Start a checkout session (Stripe as merchant of record)
+# Create a checkout session with Stripe as merchant of record
 {:ok, session} = StripeManaged.CheckoutSession.create(%{
-  line_items: [%{price: product.default_price, quantity: 1}],
+  line_items: [%{price: product["default_price"], quantity: 1}],
   mode: "subscription",
   managed_payments: %{enabled: true},
   success_url: "https://yourapp.com/success"
 })
 
-# Redirect customer to session.url
+# Redirect customer to session["url"]
 ```
 
 ## Supported resources
