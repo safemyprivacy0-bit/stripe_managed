@@ -8,10 +8,14 @@ defmodule StripeManaged do
 
   ## Configuration
 
+      # Required
       config :stripe_managed,
-        api_key: "sk_test_...",
-        api_version: "2025-03-31.basil",
-        webhook_secret: "whsec_..."
+        api_key: System.get_env("STRIPE_SECRET_KEY")
+
+      # Optional
+      config :stripe_managed,
+        webhook_secret: System.get_env("STRIPE_WEBHOOK_SECRET"),
+        api_version: "2025-03-31.basil"  # default, rarely needs changing
 
   ## Usage
 

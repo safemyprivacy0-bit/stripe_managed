@@ -22,12 +22,20 @@ Add to your `mix.exs`:
 
 ## Configuration
 
+Only `api_key` is required. Everything else has sensible defaults.
+
 ```elixir
 config :stripe_managed,
   api_key: System.get_env("STRIPE_SECRET_KEY"),
-  api_version: "2025-03-31.basil",
   webhook_secret: System.get_env("STRIPE_WEBHOOK_SECRET")
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `api_key` | *required* | Stripe secret key (`sk_live_...` or `sk_test_...`) |
+| `webhook_secret` | `nil` | Webhook signing secret (`whsec_...`) |
+| `api_version` | `"2025-03-31.basil"` | Stripe API version - only change if you know what you're doing |
+| `base_url` | `"https://api.stripe.com"` | API base URL (override for testing) |
 
 ## Quick start
 
