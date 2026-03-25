@@ -19,7 +19,7 @@ defmodule StripeManaged do
 
   ## Usage
 
-      # Create a product
+      # Create a product with a recurring price
       {:ok, product} = StripeManaged.Product.create(%{
         name: "Pro Plan",
         tax_code: "txcd_10103001",
@@ -30,12 +30,19 @@ defmodule StripeManaged do
         }
       })
 
-      # Create a checkout session
+      # Create a checkout session (Stripe as merchant of record)
       {:ok, session} = StripeManaged.CheckoutSession.create(%{
-        line_items: [%{price: product.default_price, quantity: 1}],
+        line_items: [%{price: product["default_price"], quantity: 1}],
         mode: "subscription",
         managed_payments: %{enabled: true},
         success_url: "https://example.com/success"
       })
+
+      # Redirect customer to session["url"]
+
+      # Later: manage subscriptions, refunds, invoices
+      {:ok, sub} = StripeManaged.Subscription.retrieve("sub_...")
+      {:ok, _} = StripeManaged.Subscription.cancel("sub_...", %{cancel_at_period_end: true})
+      {:ok, _} = StripeManaged.Refund.create(%{payment_intent: "pi_..."})
   """
 end
