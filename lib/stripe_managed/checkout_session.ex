@@ -2,11 +2,16 @@ defmodule StripeManaged.CheckoutSession do
   @moduledoc """
   Create and manage Stripe Checkout Sessions with Managed Payments.
 
-  This is the primary integration point - all Managed Payments sales
-  must go through Checkout Sessions with `managed_payments: %{enabled: true}`.
+  This is the primary integration point exposed by this library. Stripe also
+  supports Managed Payments through Payment Links. To enable Managed Payments
+  on a Checkout Session, pass `managed_payments: %{enabled: true}`.
 
   Supports both one-time payments (`mode: "payment"`) and
   subscriptions (`mode: "subscription"`).
+
+  A payment method collected for a Managed Payments transaction is authorized
+  for Managed Payments only. Don't charge it outside Managed Payments unless
+  you separately obtain the customer's authorization as required by law.
 
   ## Example - subscription
 
@@ -49,6 +54,10 @@ defmodule StripeManaged.CheckoutSession do
     - `metadata` - key-value metadata
     - `saved_payment_method_options` - saved payment method config
     - `payment_method_collection` - `"if_required"` for free trials
+
+  Payment methods collected by this session are authorized for Managed
+  Payments only. Reusing one for a non-Managed-Payments transaction requires
+  separate customer authorization.
   """
   @spec create(map(), keyword()) :: Client.response()
   def create(params, opts \\ []) do

@@ -2,11 +2,12 @@ defmodule StripeManaged.Subscription do
   @moduledoc """
   Manage subscriptions created through Managed Payments.
 
-  Subscriptions are created via Checkout Sessions, not directly.
+  Managed Payments subscriptions can originate from Checkout Sessions or
+  Payment Links, but they aren't created directly through the Subscriptions API.
   Use this module to retrieve, update, and cancel existing subscriptions.
 
-  Note: Invoice Items cannot be attached to Managed Payments subscriptions.
-  All sales must originate from Checkout Sessions.
+  Stripe supports eligible Subscription Items and eligible Invoice Items or
+  Invoice Line Items on invoices for Managed Payments subscriptions.
   """
 
   alias StripeManaged.Client

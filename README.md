@@ -25,9 +25,9 @@ Stripe acts as the **merchant of record** for your digital product sales. This m
 - Customers manage orders, payment methods, and refunds via the Link app
 - You keep control of products, pricing, and subscription management
 
-**Supported products**: SaaS, software downloads, video games, digital media, e-books, online courses, advertising services. Physical goods and services are not supported.
+**Supported products**: SaaS, software downloads, video games, digital media, e-books, online courses, and eligible website or information services. Physical goods and professional services are not supported.
 
-**Supported integration**: Stripe Checkout only (not Elements, Payment Links, or Connect).
+**Supported integration**: This library exposes Stripe-hosted Checkout Sessions. Managed Payments also supports Payment Links, but this library doesn't currently provide a dedicated Payment Links module. Managed Payments doesn't support Connect platforms.
 
 ## Installation
 
@@ -77,11 +77,11 @@ This is the typical flow for selling a digital product with Managed Payments:
 Every product needs a [tax code](https://docs.stripe.com/tax/tax-codes) eligible for Managed Payments. Use `StripeManaged.TaxCode` to find the right one.
 
 ```elixir
-# SaaS product with monthly billing
+# SaaS product for business customers with monthly billing
 {:ok, product} = StripeManaged.Product.create(%{
   name: "Pro Plan",
   description: "Full access to all features",
-  tax_code: StripeManaged.TaxCode.saas_personal(),
+  tax_code: StripeManaged.TaxCode.saas_business(),
   default_price_data: %{
     unit_amount: 2900,
     currency: "usd",
@@ -107,7 +107,7 @@ You can also add extra prices to an existing product:
 
 ### 2. Create a checkout session
 
-All Managed Payments sales go through Stripe Checkout. Set `managed_payments: %{enabled: true}` to activate merchant of record mode.
+This library creates Managed Payments sales through Stripe Checkout. Set `managed_payments: %{enabled: true}` to activate merchant of record mode for the session.
 
 ```elixir
 # Subscription checkout
@@ -133,6 +133,8 @@ For one-time purchases (e.g. e-book, software download):
   success_url: "https://yourapp.com/download"
 })
 ```
+
+> **Stored payment methods:** A payment method collected for a Managed Payments transaction is authorized for Managed Payments only. Obtain separate customer authorization before charging it in any non-Managed-Payments transaction.
 
 ### 3. Handle the webhook
 
@@ -274,7 +276,7 @@ upcoming["currency"]     # => "usd"
 # Create product without inline price
 {:ok, product} = StripeManaged.Product.create(%{
   name: "Starter Plan",
-  tax_code: "txcd_10103001"
+  tax_code: StripeManaged.TaxCode.saas_business()
 })
 
 # Update product
@@ -309,82 +311,49 @@ customer["email"]  # => "user@example.com"
 
 ## Tax codes
 
-Only products with eligible tax codes can be sold through Managed Payments. Each product you create must have a `tax_code` from this list.
+Only products with eligible tax codes can be sold through Managed Payments. `StripeManaged.TaxCode` contains a 76-code snapshot of Stripe's official catalog, verified on July 16, 2026.
 
 ```elixir
 # SaaS for individuals (Notion, Spotify, Netflix)
-StripeManaged.TaxCode.saas_personal()           # => "txcd_10103001"
+StripeManaged.TaxCode.saas_personal()           # => "txcd_10103000"
 
 # SaaS for companies (Slack, Jira, HubSpot)
-StripeManaged.TaxCode.saas_business()           # => "txcd_10103000"
+StripeManaged.TaxCode.saas_business()           # => "txcd_10103001"
 
 # Downloadable software for individuals
-StripeManaged.TaxCode.software_personal()       # => "txcd_10101001"
+StripeManaged.TaxCode.software_personal()       # => "txcd_10202000"
 
 # Downloadable software for businesses (IDE, design tools)
-StripeManaged.TaxCode.software_business()       # => "txcd_10101000"
+StripeManaged.TaxCode.software_business()       # => "txcd_10202003"
 
 # Video games (Steam-style digital distribution)
-StripeManaged.TaxCode.video_games_personal()    # => "txcd_10301001"
+StripeManaged.TaxCode.video_games_downloaded()  # => "txcd_10201000"
 
-# E-books, digital publications
-StripeManaged.TaxCode.ebooks_personal()         # => "txcd_10801001"
+# Downloaded e-books with permanent rights
+StripeManaged.TaxCode.digital_books_downloaded() # => "txcd_10302000"
 
-# Online courses, tutorials (Udemy, Coursera style)
-StripeManaged.TaxCode.online_courses_personal() # => "txcd_10501001"
+# Streamed online courses
+StripeManaged.TaxCode.online_courses_streamed() # => "txcd_20060158"
+
+# Cloud-hosted AI services
+StripeManaged.TaxCode.aiaas_cloud_personal()    # => "txcd_10105001"
+StripeManaged.TaxCode.aiaas_cloud_business()    # => "txcd_10105002"
 
 # Check if a code is eligible for Managed Payments
-StripeManaged.TaxCode.eligible?("txcd_10103001")  # => true
+StripeManaged.TaxCode.eligible?("txcd_10103000")  # => true
 StripeManaged.TaxCode.eligible?("txcd_99999999")  # => false
 
 # Get human-readable description
-StripeManaged.TaxCode.description("txcd_10103001")  # => "SaaS - personal use"
+StripeManaged.TaxCode.description("txcd_10103000")
+# => "Software as a service (SaaS) - personal use"
 
-# Get all 30 codes as a map
+# Get all 76 verified codes as a map
 StripeManaged.TaxCode.all()
-# => %{"txcd_10103001" => "SaaS - personal use", ...}
+# => %{"txcd_10103000" => "Software as a service (SaaS) - personal use", ...}
 ```
 
 > **Personal vs business?** Stripe uses `personal` (B2C) and `business` (B2B) variants.
-> Most SaaS/apps use `personal` unless you only sell to companies.
-
-<details>
-<summary>Full list of 30 eligible codes</summary>
-
-| Category | Code | Description |
-|----------|------|-------------|
-| **SaaS** | `txcd_10103001` | SaaS - personal use |
-| | `txcd_10103000` | SaaS - business use |
-| **Software** | `txcd_10101001` | Downloadable software - personal |
-| | `txcd_10101000` | Downloadable software - business |
-| | `txcd_10102001` | Custom software - personal |
-| | `txcd_10102000` | Custom software - business |
-| **Video games** | `txcd_10301001` | Video games - personal |
-| | `txcd_10301000` | Video games - business |
-| **Digital media** | `txcd_10201001` | Audio/visual works - personal |
-| | `txcd_10201000` | Audio/visual works - business |
-| | `txcd_10202001` | Audio works - personal |
-| | `txcd_10202000` | Audio works - business |
-| | `txcd_10203001` | Video works - personal |
-| | `txcd_10203000` | Video works - business |
-| **Digital artwork** | `txcd_10401001` | Digital artwork - personal |
-| | `txcd_10401000` | Digital artwork - business |
-| **E-books** | `txcd_10801001` | E-books - personal |
-| | `txcd_10801000` | E-books - business |
-| | `txcd_10802001` | Digital newspapers/magazines - personal |
-| | `txcd_10802000` | Digital newspapers/magazines - business |
-| **Online education** | `txcd_10501001` | Online courses - personal |
-| | `txcd_10501000` | Online courses - business |
-| | `txcd_10502001` | Training services - personal |
-| | `txcd_10502000` | Training services - business |
-| **Advertising** | `txcd_10601001` | Advertising services - personal |
-| | `txcd_10601000` | Advertising services - business |
-| **Information services** | `txcd_10701001` | Information services - personal |
-| | `txcd_10701000` | Information services - business |
-| | `txcd_10702001` | Website information services - personal |
-| | `txcd_10702000` | Website information services - business |
-
-</details>
+> The distinction is relevant only in markets where Stripe differentiates the tax treatment, including the US. Check the [current Managed Payments eligibility list](https://docs.stripe.com/payments/managed-payments/eligibility) or Dashboard before creating production Products because Stripe can change eligibility independently of this library.
 
 ## Auto-pagination
 
@@ -393,7 +362,7 @@ All `list/2` calls return a single page (default 10 items). Use `list_all/2` to 
 ```elixir
 # Stream all active products
 StripeManaged.Product.list_all(%{active: true})
-|> Stream.filter(fn p -> p["tax_code"] == "txcd_10103001" end)
+|> Stream.filter(fn p -> p["tax_code"] == StripeManaged.TaxCode.saas_business() end)
 |> Enum.to_list()
 
 # Count all subscriptions
@@ -479,7 +448,7 @@ test "full product lifecycle" do
 
   {:ok, product} = StripeManaged.Product.create(%{
     name: "Test Product",
-    tax_code: "txcd_10103001"
+    tax_code: StripeManaged.TaxCode.saas_business()
   }, opts)
 
   assert product["id"] =~ "prod_"

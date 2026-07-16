@@ -5,8 +5,9 @@ defmodule StripeManaged.Invoice do
   Invoices include the `hosted_invoice_url` field which gives
   customers access to a Stripe-hosted invoice page.
 
-  Note: One-off invoices cannot be created on Managed Payments
-  subscriptions outside of billing periods.
+  Eligible Invoice Items and Invoice Line Items can be added to invoices for
+  Managed Payments subscriptions. Standalone one-off invoices outside a
+  subscription's billing period remain unsupported.
   """
 
   alias StripeManaged.Client

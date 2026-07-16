@@ -10,7 +10,7 @@ defmodule StripeManaged.Product do
       {:ok, product} = StripeManaged.Product.create(%{
         name: "Pro Plan",
         description: "Full access to all features",
-        tax_code: "txcd_10103001",
+        tax_code: StripeManaged.TaxCode.saas_business(),
         default_price_data: %{
           unit_amount: 2900,
           currency: "usd",
