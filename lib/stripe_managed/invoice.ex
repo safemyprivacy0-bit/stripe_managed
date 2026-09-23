@@ -17,13 +17,13 @@ defmodule StripeManaged.Invoice do
   @doc "Retrieves an invoice by ID."
   @spec retrieve(String.t(), keyword()) :: Client.response()
   def retrieve(id, opts \\ []) do
-    Client.get("#{@path}/#{id}", opts)
+    Client.get(Client.path(@path, [id]), opts)
   end
 
   @doc "Lists invoices. Filter by `customer`, `subscription`, `status`, etc."
   @spec list(map(), keyword()) :: Client.response()
   def list(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    Client.get_with_params(@path, params, opts)
   end
 
   @doc "Returns a lazy Stream of all invoices, auto-paginating."
@@ -32,9 +32,26 @@ defmodule StripeManaged.Invoice do
     Client.list_paginated(@path, params, opts)
   end
 
-  @doc "Retrieves the upcoming invoice for a subscription."
+  @doc """
+  Previews the next invoice for a customer or subscription.
+
+  Uses `POST /v1/invoices/create_preview`. Pass `subscription` or
+  `customer`, plus optional `subscription_details` to preview changes.
+  """
+  @spec create_preview(map(), keyword()) :: Client.response()
+  def create_preview(params \\ %{}, opts \\ []) do
+    Client.post(@path <> "/create_preview", params, opts)
+  end
+
+  @doc """
+  Previews the upcoming invoice.
+
+  Stripe removed `GET /v1/invoices/upcoming` in API version
+  `2025-03-31.basil`, so this now delegates to `create_preview/2`.
+  """
+  @doc deprecated: "Use create_preview/2 instead"
   @spec upcoming(map(), keyword()) :: Client.response()
   def upcoming(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "/upcoming?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    create_preview(params, opts)
   end
 end

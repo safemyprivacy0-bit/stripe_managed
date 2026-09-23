@@ -67,27 +67,24 @@ defmodule StripeManaged.CheckoutSession do
   @doc "Retrieves a session by ID."
   @spec retrieve(String.t(), keyword()) :: Client.response()
   def retrieve(id, opts \\ []) do
-    Client.get("#{@path}/#{id}", opts)
+    Client.get(Client.path(@path, [id]), opts)
   end
 
   @doc "Lists checkout sessions."
   @spec list(map(), keyword()) :: Client.response()
   def list(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    Client.get_with_params(@path, params, opts)
   end
 
   @doc "Expires a checkout session so it can no longer be completed."
   @spec expire(String.t(), keyword()) :: Client.response()
   def expire(id, opts \\ []) do
-    Client.post("#{@path}/#{id}/expire", %{}, opts)
+    Client.post(Client.path(@path, [id, "expire"]), %{}, opts)
   end
 
   @doc "Retrieves line items for a session."
   @spec list_line_items(String.t(), map(), keyword()) :: Client.response()
   def list_line_items(id, params \\ %{}, opts \\ []) do
-    Client.get(
-      "#{@path}/#{id}/line_items?" <> URI.encode_query(Client.flatten_params(params)),
-      opts
-    )
+    Client.get_with_params(Client.path(@path, [id, "line_items"]), params, opts)
   end
 end

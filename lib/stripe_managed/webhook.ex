@@ -42,16 +42,10 @@ defmodule StripeManaged.Webhook do
   @spec construct_event(String.t(), String.t(), keyword()) ::
           {:ok, map()} | {:error, String.t()}
   def construct_event(payload, signature, opts \\ []) do
-    secret = Keyword.get(opts, :webhook_secret) || Config.webhook_secret(opts)
-    tolerance = Keyword.get(opts, :tolerance, @default_tolerance)
-
-    with {:ok, timestamp, signatures} <- parse_signature(signature),
-         :ok <- verify_timestamp(timestamp, tolerance),
-         :ok <- verify_signature(payload, timestamp, signatures, secret) do
-      Jason.decode(payload)
-      |> case do
-        {:ok, event} -> {:ok, event}
-        {:error, _} -> {:error, "invalid JSON payload"}
+    with :ok <- verify(payload, signature, opts) do
+      case Jason.decode(payload) do
+        {:ok, event} when is_map(event) -> {:ok, event}
+        _ -> {:error, "invalid JSON payload"}
       end
     end
   end
@@ -62,10 +56,11 @@ defmodule StripeManaged.Webhook do
   """
   @spec verify(String.t(), String.t(), keyword()) :: :ok | {:error, String.t()}
   def verify(payload, signature, opts \\ []) do
-    secret = Keyword.get(opts, :webhook_secret) || Config.webhook_secret(opts)
     tolerance = Keyword.get(opts, :tolerance, @default_tolerance)
 
-    with {:ok, timestamp, signatures} <- parse_signature(signature),
+    with {:ok, secret} <- fetch_secret(opts),
+         :ok <- validate_payload(payload),
+         {:ok, timestamp, signatures} <- parse_signature(signature),
          :ok <- verify_timestamp(timestamp, tolerance),
          :ok <- verify_signature(payload, timestamp, signatures, secret) do
       :ok
@@ -74,7 +69,18 @@ defmodule StripeManaged.Webhook do
 
   # -- Private --
 
-  defp parse_signature(nil), do: {:error, "missing stripe-signature header"}
+  defp fetch_secret(opts) do
+    case Config.webhook_secret(opts) do
+      secret when is_binary(secret) and secret != "" -> {:ok, secret}
+      _ -> {:error, "missing webhook secret"}
+    end
+  end
+
+  defp validate_payload(payload) when is_binary(payload), do: :ok
+  defp validate_payload(_payload), do: {:error, "payload must be the raw request body string"}
+
+  defp parse_signature(header) when not is_binary(header) or header == "",
+    do: {:error, "missing stripe-signature header"}
 
   defp parse_signature(header) do
     parts =
@@ -91,11 +97,17 @@ defmodule StripeManaged.Webhook do
 
     timestamp =
       parts
-      |> Enum.find_value(fn {"t", v} -> v; _ -> nil end)
+      |> Enum.find_value(fn
+        {"t", v} -> v
+        _ -> nil
+      end)
 
     signatures =
       parts
-      |> Enum.filter(fn {"v1", _} -> true; _ -> false end)
+      |> Enum.filter(fn
+        {"v1", _} -> true
+        _ -> false
+      end)
       |> Enum.map(fn {_, v} -> v end)
 
     case {timestamp, signatures} do
@@ -136,13 +148,5 @@ defmodule StripeManaged.Webhook do
   end
 
   defp secure_compare(a, b) when byte_size(a) != byte_size(b), do: false
-
-  defp secure_compare(a, b) do
-    a_bytes = :binary.bin_to_list(a)
-    b_bytes = :binary.bin_to_list(b)
-
-    Enum.zip(a_bytes, b_bytes)
-    |> Enum.reduce(0, fn {x, y}, acc -> Bitwise.bor(acc, Bitwise.bxor(x, y)) end)
-    |> Kernel.==(0)
-  end
+  defp secure_compare(a, b), do: :crypto.hash_equals(a, b)
 end

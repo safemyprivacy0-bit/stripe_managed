@@ -32,25 +32,25 @@ defmodule StripeManaged.Product do
   @doc "Retrieves a product by ID."
   @spec retrieve(String.t(), keyword()) :: Client.response()
   def retrieve(id, opts \\ []) do
-    Client.get("#{@path}/#{id}", opts)
+    Client.get(Client.path(@path, [id]), opts)
   end
 
   @doc "Updates a product."
   @spec update(String.t(), map(), keyword()) :: Client.response()
   def update(id, params, opts \\ []) do
-    Client.post("#{@path}/#{id}", params, opts)
+    Client.post(Client.path(@path, [id]), params, opts)
   end
 
   @doc "Deletes a product (only if it has no prices)."
   @spec delete(String.t(), keyword()) :: Client.response()
   def delete(id, opts \\ []) do
-    Client.delete("#{@path}/#{id}", opts)
+    Client.delete(Client.path(@path, [id]), opts)
   end
 
   @doc "Lists products. Accepts optional filter params."
   @spec list(map(), keyword()) :: Client.response()
   def list(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    Client.get_with_params(@path, params, opts)
   end
 
   @doc "Returns a lazy Stream of all products, auto-paginating."

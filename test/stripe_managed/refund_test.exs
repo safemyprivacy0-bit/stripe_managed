@@ -43,7 +43,9 @@ defmodule StripeManaged.RefundTest do
 
   describe "update/3" do
     test "updates refund metadata", %{opts: opts} do
-      assert {:ok, refund} = Refund.update("re_test123", %{metadata: %{reason: "duplicate"}}, opts)
+      assert {:ok, refund} =
+               Refund.update("re_test123", %{metadata: %{reason: "duplicate"}}, opts)
+
       assert refund["id"] == "re_test123"
     end
   end

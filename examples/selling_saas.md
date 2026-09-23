@@ -206,10 +206,12 @@ defmodule MyApp.Billing do
 
   def get_subscription(subscription_id) do
     {:ok, sub} = StripeManaged.Subscription.retrieve(subscription_id)
+    # Since API version 2025-03-31.basil, billing periods live on subscription items
+    [item | _] = sub["items"]["data"]
 
     %{
       status: sub["status"],
-      current_period_end: DateTime.from_unix!(sub["current_period_end"]),
+      current_period_end: DateTime.from_unix!(item["current_period_end"]),
       cancel_at_period_end: sub["cancel_at_period_end"]
     }
   end

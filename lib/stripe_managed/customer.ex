@@ -17,13 +17,13 @@ defmodule StripeManaged.Customer do
   @doc "Retrieves a customer by ID."
   @spec retrieve(String.t(), keyword()) :: Client.response()
   def retrieve(id, opts \\ []) do
-    Client.get("#{@path}/#{id}", opts)
+    Client.get(Client.path(@path, [id]), opts)
   end
 
   @doc "Lists customers."
   @spec list(map(), keyword()) :: Client.response()
   def list(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    Client.get_with_params(@path, params, opts)
   end
 
   @doc "Returns a lazy Stream of all customers, auto-paginating."
