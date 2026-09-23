@@ -4,6 +4,16 @@ defmodule StripeManaged.Client do
 
   Handles authentication, request encoding, response parsing, and retries.
   All resource modules delegate to this module for actual HTTP calls.
+
+  ## Request options
+
+  Every function accepts a keyword list of options. Besides the config keys
+  described in `StripeManaged.Config`, the following are supported:
+
+    * `:idempotency_key` - `Idempotency-Key` header for POST requests.
+      When omitted, a random key is generated per call so that automatic
+      retries of a POST can never create duplicate objects.
+    * `:max_retries` - retries for transient failures (default: `2`).
   """
 
   alias StripeManaged.{Config, Error}
@@ -16,6 +26,14 @@ defmodule StripeManaged.Client do
   @spec get(String.t(), keyword()) :: response()
   def get(path, opts \\ []) do
     request(:get, path, nil, opts)
+  end
+
+  @doc """
+  Performs a GET request with `params` encoded as the query string.
+  """
+  @spec get_with_params(String.t(), map(), keyword()) :: response()
+  def get_with_params(path, params, opts \\ []) do
+    request(:get, path, params, opts)
   end
 
   @doc """
@@ -35,27 +53,39 @@ defmodule StripeManaged.Client do
   end
 
   @doc """
+  Performs a DELETE request with `params` encoded as the query string.
+  """
+  @spec delete_with_params(String.t(), map(), keyword()) :: response()
+  def delete_with_params(path, params, opts \\ []) do
+    request(:delete, path, params, opts)
+  end
+
+  @doc """
   Lists resources with auto-pagination support.
 
-  Returns a Stream that lazily fetches pages.
+  Returns a Stream that lazily fetches pages. If a page request fails,
+  the stream emits a single `{:error, %StripeManaged.Error{}}` element
+  and halts.
   """
   @spec list_paginated(String.t(), map(), keyword()) :: Enumerable.t()
   def list_paginated(path, params \\ %{}, opts \\ []) do
     Stream.resource(
-      fn -> {path, params, opts} end,
+      fn -> params end,
       fn
         nil ->
           {:halt, nil}
 
-        {path, params, opts} ->
-          case get_with_query(path, params, opts) do
-            {:ok, %{"data" => data, "has_more" => true}} ->
+        params ->
+          case get_with_params(path, params, opts) do
+            {:ok, %{"data" => [_ | _] = data, "has_more" => true}} ->
               last_id = data |> List.last() |> Map.get("id")
-              next_params = Map.put(params, :starting_after, last_id)
-              {data, {path, next_params, opts}}
+              {data, put_starting_after(params, last_id)}
 
-            {:ok, %{"data" => data}} ->
+            {:ok, %{"data" => data}} when is_list(data) ->
               {data, nil}
+
+            {:ok, body} ->
+              {[{:error, Error.from_response(body, 200)}], nil}
 
             {:error, _} = error ->
               {[error], nil}
@@ -65,27 +95,46 @@ defmodule StripeManaged.Client do
     )
   end
 
+  @doc """
+  Builds a resource path, URL-encoding each dynamic segment.
+
+      iex> StripeManaged.Client.path("/v1/customers", ["cus_123"])
+      "/v1/customers/cus_123"
+
+      iex> StripeManaged.Client.path("/v1/customers", ["../charges"])
+      "/v1/customers/..%2Fcharges"
+
+  Raises `ArgumentError` for a `nil` or empty segment, which would otherwise
+  silently turn a retrieve into a list request.
+  """
+  @spec path(String.t(), [String.t()]) :: String.t()
+  def path(base, segments) do
+    Enum.reduce(segments, base, fn segment, acc ->
+      acc <> "/" <> encode_segment(segment)
+    end)
+  end
+
+  defp encode_segment(segment) when segment in [nil, ""] do
+    raise ArgumentError, "expected a non-empty ID, got: #{inspect(segment)}"
+  end
+
+  defp encode_segment(segment) do
+    URI.encode(to_string(segment), &URI.char_unreserved?/1)
+  end
+
   # -- Private --
 
   defp request(method, path, params, opts) do
-    url = Config.base_url(opts) <> path
-
     req =
       Req.new(
         method: method,
-        url: url,
-        headers: headers(opts),
+        url: Config.base_url(opts) <> path,
+        headers: headers(method, opts),
         retry: :transient,
-        max_retries: 2,
+        max_retries: Keyword.get(opts, :max_retries, 2),
         retry_delay: &retry_delay/1
       )
-
-    req =
-      if params && method in [:post] do
-        Req.merge(req, form: flatten_params(params))
-      else
-        req
-      end
+      |> put_params(method, params)
 
     case Req.request(req) do
       {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
@@ -99,40 +148,34 @@ defmodule StripeManaged.Client do
     end
   end
 
-  defp get_with_query(path, params, opts) do
-    query = params |> flatten_params() |> Enum.into([])
+  defp put_params(req, _method, nil), do: req
+  defp put_params(req, :post, params), do: Req.merge(req, form: flatten_params(params))
+  defp put_params(req, _method, params), do: Req.merge(req, params: flatten_params(params))
 
-    url = Config.base_url(opts) <> path
-
-    req =
-      Req.new(
-        method: :get,
-        url: url,
-        headers: headers(opts),
-        params: query,
-        retry: :transient,
-        max_retries: 2,
-        retry_delay: &retry_delay/1
-      )
-
-    case Req.request(req) do
-      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
-        {:ok, body}
-
-      {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, Error.from_response(body, status)}
-
-      {:error, reason} ->
-        {:error, Error.network_error(reason)}
-    end
-  end
-
-  defp headers(opts) do
+  defp headers(method, opts) do
     [
       {"authorization", "Bearer #{Config.api_key(opts)}"},
-      {"stripe-version", Config.api_version(opts)},
-      {"content-type", "application/x-www-form-urlencoded"}
-    ]
+      {"stripe-version", Config.api_version(opts)}
+    ] ++ idempotency_header(method, opts)
+  end
+
+  # The key is fixed before Req runs, so every retry of the same POST
+  # carries the same key and Stripe deduplicates it.
+  defp idempotency_header(:post, opts) do
+    key = Keyword.get_lazy(opts, :idempotency_key, &generate_idempotency_key/0)
+    [{"idempotency-key", key}]
+  end
+
+  defp idempotency_header(_method, _opts), do: []
+
+  defp generate_idempotency_key do
+    :crypto.strong_rand_bytes(16) |> Base.encode16(case: :lower)
+  end
+
+  defp put_starting_after(params, last_id) do
+    params
+    |> Map.drop(["starting_after", "ending_before", :ending_before])
+    |> Map.put(:starting_after, last_id)
   end
 
   defp retry_delay(n), do: Integer.pow(2, n) * 500
@@ -145,6 +188,9 @@ defmodule StripeManaged.Client do
 
   def flatten_params(params) when is_list(params), do: params
 
+  # nil values are omitted; pass "" to unset a field in Stripe.
+  defp flatten_key(_key, nil), do: []
+
   defp flatten_key(key, value) when is_map(value) do
     Enum.flat_map(value, fn {k, v} ->
       flatten_key("#{key}[#{k}]", v)
@@ -155,10 +201,6 @@ defmodule StripeManaged.Client do
     values
     |> Enum.with_index()
     |> Enum.flat_map(fn {v, i} -> flatten_key("#{key}[#{i}]", v) end)
-  end
-
-  defp flatten_key(key, value) when is_boolean(value) do
-    [{key, to_string(value)}]
   end
 
   defp flatten_key(key, value) when is_atom(value) do

@@ -1,7 +1,7 @@
 defmodule StripeManaged.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.2.0"
   @source_url "https://github.com/safemyprivacy0-bit/stripe_managed"
 
   def project do
@@ -35,7 +35,6 @@ defmodule StripeManaged.MixProject do
       {:jason, "~> 1.4"},
       {:plug, "~> 1.16", optional: true},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
-      {:mox, "~> 1.1", only: :test},
       {:plug_cowboy, "~> 2.7", only: :test}
     ]
   end
@@ -43,8 +42,11 @@ defmodule StripeManaged.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      },
+      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE examples)
     ]
   end
 
@@ -52,7 +54,8 @@ defmodule StripeManaged.MixProject do
     [
       main: "readme",
       source_url: @source_url,
-      extras: ["README.md"]
+      source_ref: "v#{@version}",
+      extras: ["README.md", "examples/selling_saas.md", "CHANGELOG.md", "LICENSE"]
     ]
   end
 end

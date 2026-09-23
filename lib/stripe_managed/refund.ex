@@ -30,19 +30,19 @@ defmodule StripeManaged.Refund do
   @doc "Retrieves a refund by ID."
   @spec retrieve(String.t(), keyword()) :: Client.response()
   def retrieve(id, opts \\ []) do
-    Client.get("#{@path}/#{id}", opts)
+    Client.get(Client.path(@path, [id]), opts)
   end
 
   @doc "Updates a refund's metadata."
   @spec update(String.t(), map(), keyword()) :: Client.response()
   def update(id, params, opts \\ []) do
-    Client.post("#{@path}/#{id}", params, opts)
+    Client.post(Client.path(@path, [id]), params, opts)
   end
 
   @doc "Lists refunds. Filter by `payment_intent`, `charge`, etc."
   @spec list(map(), keyword()) :: Client.response()
   def list(params \\ %{}, opts \\ []) do
-    Client.get(@path <> "?" <> URI.encode_query(Client.flatten_params(params)), opts)
+    Client.get_with_params(@path, params, opts)
   end
 
   @doc "Returns a lazy Stream of all refunds, auto-paginating."

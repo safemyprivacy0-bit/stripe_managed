@@ -36,7 +36,7 @@ Add to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:stripe_managed, "~> 0.1"}
+    {:stripe_managed, "~> 0.2"}
   ]
 end
 ```
@@ -210,12 +210,18 @@ end
 # Get subscription details
 {:ok, sub} = StripeManaged.Subscription.retrieve("sub_abc123")
 sub["status"]              # => "active"
-sub["current_period_end"]  # => 1710000000 (Unix timestamp)
+# Since API version 2025-03-31.basil, billing periods live on subscription items
+[item | _] = sub["items"]["data"]
+item["current_period_end"]  # => 1710000000 (Unix timestamp)
 
-# Cancel at end of billing period (customer keeps access until then)
-{:ok, canceled} = StripeManaged.Subscription.cancel("sub_abc123", %{
+# Cancel at end of billing period (customer keeps access until then).
+# Sent as a subscription update, since Stripe's cancel endpoint doesn't accept it.
+{:ok, sub} = StripeManaged.Subscription.cancel("sub_abc123", %{
   cancel_at_period_end: true
 })
+
+# Undo a scheduled cancellation
+{:ok, sub} = StripeManaged.Subscription.update("sub_abc123", %{cancel_at_period_end: false})
 
 # Cancel immediately
 {:ok, canceled} = StripeManaged.Subscription.cancel("sub_abc123")
@@ -262,9 +268,9 @@ invoice["hosted_invoice_url"]  # => "https://invoice.stripe.com/i/..."
 invoice["status"]              # => "paid"
 
 # Preview next invoice amount before it's generated
-{:ok, upcoming} = StripeManaged.Invoice.upcoming(%{subscription: "sub_abc123"})
-upcoming["amount_due"]   # => 2900
-upcoming["currency"]     # => "usd"
+{:ok, preview} = StripeManaged.Invoice.create_preview(%{subscription: "sub_abc123"})
+preview["amount_due"]   # => 2900
+preview["currency"]     # => "usd"
 
 # List all invoices for a subscription
 {:ok, result} = StripeManaged.Invoice.list(%{subscription: "sub_abc123"})
@@ -372,6 +378,8 @@ StripeManaged.Subscription.list_all(%{status: "active"})
 
 The stream fetches pages lazily - it only hits the API when you consume more items.
 
+If a page request fails, the stream emits a single `{:error, %StripeManaged.Error{}}` element and stops, so check for it when consuming large lists.
+
 ## Per-request config
 
 Override global config on any call. Useful for multi-tenant setups or testing:
@@ -388,6 +396,19 @@ Override global config on any call. Useful for multi-tenant setups or testing:
   base_url: "http://localhost:4001"
 )
 ```
+
+## Retries and idempotency
+
+Transient failures (network errors, 429, 5xx) are retried up to 2 times with exponential backoff. Every POST carries an `Idempotency-Key` header, generated per call, so a retried request never creates a duplicate refund or checkout session. Pass your own key to make retries across calls safe too:
+
+```elixir
+StripeManaged.Refund.create(%{payment_intent: "pi_abc123"},
+  idempotency_key: "refund-order-42",
+  max_retries: 3
+)
+```
+
+Parameters set to `nil` are omitted from requests. Send `""` to unset a field in Stripe.
 
 ## Error handling
 
@@ -462,8 +483,9 @@ end
 | `StripeManaged.Product` | create, retrieve, update, delete, list, list_all |
 | `StripeManaged.Price` | create, retrieve, update, list, list_all |
 | `StripeManaged.CheckoutSession` | create, retrieve, list, expire, list_line_items |
+| `StripeManaged.BillingPortal` | create_session |
 | `StripeManaged.Subscription` | retrieve, update, cancel, resume, list, list_all |
-| `StripeManaged.Invoice` | retrieve, list, list_all, upcoming |
+| `StripeManaged.Invoice` | retrieve, list, list_all, create_preview |
 | `StripeManaged.Refund` | create, retrieve, update, list, list_all |
 | `StripeManaged.Customer` | retrieve, list, list_all |
 | `StripeManaged.Webhook` | construct_event, verify |

@@ -40,14 +40,32 @@ defmodule StripeManaged.InvoiceTest do
     end
   end
 
-  describe "upcoming/2" do
-    test "returns upcoming invoice", %{opts: opts} do
-      assert {:ok, inv} = Invoice.upcoming(%{subscription: "sub_test123"}, opts)
+  describe "create_preview/2" do
+    test "previews the next invoice for a subscription", %{opts: opts} do
+      assert {:ok, inv} = Invoice.create_preview(%{subscription: "sub_test123"}, opts)
       assert inv["amount_due"] == 2900
       assert inv["currency"] == "usd"
+      assert inv["subscription"] == "sub_test123"
     end
 
-    test "returns upcoming without params", %{opts: opts} do
+    test "sends a POST to /v1/invoices/create_preview", %{opts: opts} do
+      opts = Keyword.put(opts, :base_url, opts[:base_url] <> "/v1/echo")
+
+      assert {:ok, echo} = Invoice.create_preview(%{customer: "cus_1"}, opts)
+      assert echo["method"] == "POST"
+      assert echo["request_path"] == "/v1/echo/v1/invoices/create_preview"
+      assert echo["body_params"] == %{"customer" => "cus_1"}
+    end
+  end
+
+  describe "upcoming/2 (deprecated)" do
+    test "delegates to create_preview", %{opts: opts} do
+      assert {:ok, inv} = Invoice.upcoming(%{subscription: "sub_test123"}, opts)
+      assert inv["amount_due"] == 2900
+      assert inv["subscription"] == "sub_test123"
+    end
+
+    test "works without params", %{opts: opts} do
       assert {:ok, inv} = Invoice.upcoming(%{}, opts)
       assert is_integer(inv["amount_due"])
     end

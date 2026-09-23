@@ -8,9 +8,9 @@ defmodule StripeManaged.MockServer do
 
   use Plug.Router
 
-  plug :match
-  plug Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Jason
-  plug :dispatch
+  plug(:match)
+  plug(Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Jason)
+  plug(:dispatch)
 
   # -- Products --
 
@@ -163,7 +163,8 @@ defmodule StripeManaged.MockServer do
     json(conn, 200, %{
       "id" => id,
       "object" => "subscription",
-      "status" => "active"
+      "status" => "active",
+      "cancel_at_period_end" => conn.body_params["cancel_at_period_end"] == "true"
     })
   end
 
@@ -193,12 +194,13 @@ defmodule StripeManaged.MockServer do
 
   # -- Invoices --
 
-  get "/v1/invoices/upcoming" do
+  post "/v1/invoices/create_preview" do
     json(conn, 200, %{
       "object" => "invoice",
       "amount_due" => 2900,
       "currency" => "usd",
-      "status" => "draft"
+      "status" => "draft",
+      "subscription" => conn.body_params["subscription"]
     })
   end
 
@@ -273,6 +275,48 @@ defmodule StripeManaged.MockServer do
       "data" => [%{"id" => "cus_1", "object" => "customer", "email" => "test@example.com"}],
       "has_more" => false
     })
+  end
+
+  # -- Billing Portal --
+
+  post "/v1/billing_portal/sessions" do
+    json(conn, 200, %{
+      "id" => "bps_test123",
+      "object" => "billing_portal.session",
+      "customer" => conn.body_params["customer"],
+      "return_url" => conn.body_params["return_url"],
+      "url" => "https://billing.stripe.com/p/session/test_123"
+    })
+  end
+
+  # -- Echo (returns what the server received) --
+
+  match "/v1/echo/*_rest" do
+    json(conn, 200, %{
+      "method" => conn.method,
+      "request_path" => conn.request_path,
+      "query_string" => conn.query_string,
+      "body_params" => conn.body_params,
+      "headers" => Map.new(conn.req_headers)
+    })
+  end
+
+  # -- Pagination edge cases --
+
+  get "/v1/paginated_empty_has_more" do
+    json(conn, 200, %{"object" => "list", "data" => [], "has_more" => true})
+  end
+
+  get "/v1/paginated_error" do
+    if conn.query_params["starting_after"] do
+      json(conn, 500, %{"error" => %{"type" => "api_error", "message" => "boom"}})
+    else
+      json(conn, 200, %{"object" => "list", "data" => [%{"id" => "item_1"}], "has_more" => true})
+    end
+  end
+
+  get "/v1/paginated_not_a_list" do
+    json(conn, 200, %{"object" => "product", "id" => "prod_1"})
   end
 
   # -- Pagination test --

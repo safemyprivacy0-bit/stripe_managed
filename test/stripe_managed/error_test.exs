@@ -30,7 +30,10 @@ defmodule StripeManaged.ErrorTest do
     end
 
     test "parses card error" do
-      body = %{"error" => %{"type" => "card_error", "code" => "card_declined", "message" => "Declined"}}
+      body = %{
+        "error" => %{"type" => "card_error", "code" => "card_declined", "message" => "Declined"}
+      }
+
       error = Error.from_response(body, 402)
       assert error.type == :card_error
       assert error.code == "card_declined"

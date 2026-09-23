@@ -50,7 +50,8 @@ defmodule StripeManaged.DefaultOptsTest do
   # Price
 
   test "Price.create/1 with default opts" do
-    assert {:ok, _} = StripeManaged.Price.create(%{product: "prod_1", unit_amount: 100, currency: "usd"})
+    assert {:ok, _} =
+             StripeManaged.Price.create(%{product: "prod_1", unit_amount: 100, currency: "usd"})
   end
 
   test "Price.retrieve/1 with default opts" do
@@ -141,8 +142,18 @@ defmodule StripeManaged.DefaultOptsTest do
     assert is_list(result)
   end
 
+  test "Invoice.create_preview/0 with default opts" do
+    assert {:ok, _} = StripeManaged.Invoice.create_preview()
+  end
+
   test "Invoice.upcoming/0 with default opts" do
     assert {:ok, _} = StripeManaged.Invoice.upcoming()
+  end
+
+  # Billing Portal
+
+  test "BillingPortal.create_session/1 with default opts" do
+    assert {:ok, _} = StripeManaged.BillingPortal.create_session(%{customer: "cus_1"})
   end
 
   # Refund

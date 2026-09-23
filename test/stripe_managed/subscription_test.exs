@@ -39,8 +39,47 @@ defmodule StripeManaged.SubscriptionTest do
       assert sub["status"] == "canceled"
     end
 
-    test "cancels at period end", %{opts: opts} do
+    test "cancels at period end via update", %{opts: opts} do
       assert {:ok, sub} = Subscription.cancel("sub_test123", %{cancel_at_period_end: true}, opts)
+      assert sub["status"] == "active"
+      assert sub["cancel_at_period_end"] == true
+    end
+
+    test "accepts string key for cancel_at_period_end", %{opts: opts} do
+      assert {:ok, sub} =
+               Subscription.cancel("sub_test123", %{"cancel_at_period_end" => true}, opts)
+
+      assert sub["cancel_at_period_end"] == true
+    end
+
+    test "sends POST update for cancel_at_period_end", %{opts: opts} do
+      opts = Keyword.put(opts, :base_url, opts[:base_url] <> "/v1/echo")
+
+      assert {:ok, echo} =
+               Subscription.cancel("sub_test123", %{cancel_at_period_end: true}, opts)
+
+      assert echo["method"] == "POST"
+      assert echo["request_path"] == "/v1/echo/v1/subscriptions/sub_test123"
+      assert echo["body_params"] == %{"cancel_at_period_end" => "true"}
+    end
+
+    test "sends DELETE with query params for immediate cancel", %{opts: opts} do
+      opts = Keyword.put(opts, :base_url, opts[:base_url] <> "/v1/echo")
+
+      assert {:ok, echo} =
+               Subscription.cancel("sub_test123", %{invoice_now: true, prorate: false}, opts)
+
+      assert echo["method"] == "DELETE"
+      assert echo["request_path"] == "/v1/echo/v1/subscriptions/sub_test123"
+
+      assert URI.decode_query(echo["query_string"]) == %{
+               "invoice_now" => "true",
+               "prorate" => "false"
+             }
+    end
+
+    test "cancel_at_period_end: false cancels immediately", %{opts: opts} do
+      assert {:ok, sub} = Subscription.cancel("sub_test123", %{cancel_at_period_end: false}, opts)
       assert sub["status"] == "canceled"
     end
   end

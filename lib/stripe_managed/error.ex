@@ -4,8 +4,8 @@ defmodule StripeManaged.Error do
 
   ## Fields
 
-    * `:type` - error category (`:api_error`, `:card_error`, `:invalid_request`,
-      `:authentication`, `:rate_limit`, `:network`)
+    * `:type` - error category (`:api_error`, `:card_error`, `:idempotency_error`,
+      `:invalid_request`, `:authentication`, `:rate_limit`, `:network`)
     * `:code` - Stripe error code string (e.g. `"resource_missing"`)
     * `:message` - human-readable description
     * `:param` - the parameter that caused the error (if applicable)
